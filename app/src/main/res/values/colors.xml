@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Màu app MyWallet -->
+    <color name="primary">#5B3FFF</color>
+    <color name="primary_dark">#3D2ABF</color>
+    <color name="accent">#00C2A8</color>
+
+    <color name="background">#F5F6FA</color>
+    <color name="card_white">#FFFFFF</color>
+    <color name="primary_light">#F0E9FF</color>
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#6B7280</color>
+
+    <color name="income">#16A34A</color>
+    <color name="expense">#EF4444</color>
+
+    <!-- Màu mặc định Android Studio đang cần -->
+    <color name="purple_200">#BB86FC</color>
+    <color name="purple_500">#6200EE</color>
+    <color name="purple_700">#3700B3</color>
+    <color name="teal_200">#03DAC5</color>
+    <color name="teal_700">#018786</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>
