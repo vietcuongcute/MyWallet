@@ -697,4 +697,155 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         return list;
     }
+    public double getRealExpenseTotalForStatistics() {
+        double total = 0;
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT SUM(" + COL_AMOUNT + ") FROM " + TABLE_TRANSACTION +
+                        " WHERE " + COL_TYPE + " = ?" +
+                        " AND " + COL_CATEGORY + " != ?",
+                new String[]{"Chi tiêu", "Nạp hũ"}
+        );
+
+        if (cursor.moveToFirst()) {
+            total = cursor.getDouble(0);
+        }
+
+        cursor.close();
+        db.close();
+
+        return total;
+    }
+
+    public ArrayList<String> getExpenseByCategoryForStatistics() {
+        ArrayList<String> list = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT " + COL_CATEGORY + ", SUM(" + COL_AMOUNT + ") AS total FROM " + TABLE_TRANSACTION +
+                        " WHERE " + COL_TYPE + " = ?" +
+                        " AND " + COL_CATEGORY + " != ?" +
+                        " GROUP BY " + COL_CATEGORY +
+                        " ORDER BY total DESC",
+                new String[]{"Chi tiêu", "Nạp hũ"}
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                String category = cursor.getString(0);
+                double total = cursor.getDouble(1);
+
+                list.add(category + "|" + total);
+
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+
+        return list;
+    }
+
+    public double getRealIncomeTotalForStatistics() {
+        double total = 0;
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT SUM(" + COL_AMOUNT + ") FROM " + TABLE_TRANSACTION +
+                        " WHERE " + COL_TYPE + " = ?" +
+                        " AND " + COL_CATEGORY + " != ?",
+                new String[]{"Thu nhập", "Rút hũ"}
+        );
+
+        if (cursor.moveToFirst()) {
+            total = cursor.getDouble(0);
+        }
+
+        cursor.close();
+        db.close();
+
+        return total;
+    }
+
+    public ArrayList<String> getIncomeByCategoryForStatistics() {
+        ArrayList<String> list = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT " + COL_CATEGORY + ", SUM(" + COL_AMOUNT + ") AS total FROM " + TABLE_TRANSACTION +
+                        " WHERE " + COL_TYPE + " = ?" +
+                        " AND " + COL_CATEGORY + " != ?" +
+                        " GROUP BY " + COL_CATEGORY +
+                        " ORDER BY total DESC",
+                new String[]{"Thu nhập", "Rút hũ"}
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                String category = cursor.getString(0);
+                double total = cursor.getDouble(1);
+
+                list.add(category + "|" + total);
+
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+
+        return list;
+    }
+
+    public double getBudgetHistoryTotalForStatistics() {
+        double total = 0;
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT SUM(" + HISTORY_AMOUNT + ") FROM " + TABLE_BUDGET_HISTORY,
+                null
+        );
+
+        if (cursor.moveToFirst()) {
+            total = cursor.getDouble(0);
+        }
+
+        cursor.close();
+        db.close();
+
+        return total;
+    }
+
+    public ArrayList<String> getBudgetHistoryByActionForStatistics() {
+        ArrayList<String> list = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT " + HISTORY_ACTION + ", SUM(" + HISTORY_AMOUNT + ") AS total FROM " + TABLE_BUDGET_HISTORY +
+                        " GROUP BY " + HISTORY_ACTION +
+                        " ORDER BY total DESC",
+                null
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                String action = cursor.getString(0);
+                double total = cursor.getDouble(1);
+
+                list.add(action + "|" + total);
+
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+
+        return list;
+    }
 }

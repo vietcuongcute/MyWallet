@@ -1,7 +1,9 @@
 package com.example.mywallet;
 
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,12 +19,16 @@ import java.util.ArrayList;
 
 public class StatisticsFragment extends Fragment {
 
-    TextView tvTotalExpense;
+    TextView tvStatisticsTitle, tvTotalTitle;
+    TextView tabExpense, tabIncome, tabBudget;
+
     DonutChartView donutChart;
     LinearLayout layoutLegend;
 
     DatabaseHelper databaseHelper;
     DecimalFormat decimalFormat;
+
+    int selectedTab = 0;
 
     int[] chartColors = {
             Color.parseColor("#2ECC71"),
@@ -32,7 +38,9 @@ public class StatisticsFragment extends Fragment {
             Color.parseColor("#3B82F6"),
             Color.parseColor("#14B8A6"),
             Color.parseColor("#FACC15"),
-            Color.parseColor("#EC4899")
+            Color.parseColor("#EC4899"),
+            Color.parseColor("#6366F1"),
+            Color.parseColor("#84CC16")
     };
 
     public StatisticsFragment() {
@@ -47,13 +55,20 @@ public class StatisticsFragment extends Fragment {
     ) {
         View view = inflater.inflate(R.layout.fragment_statistics, container, false);
 
-        tvTotalExpense = view.findViewById(R.id.tvTotalExpense);
+        tvStatisticsTitle = view.findViewById(R.id.tvStatisticsTitle);
+        tvTotalTitle = view.findViewById(R.id.tvTotalTitle);
+
+        tabExpense = view.findViewById(R.id.tabExpense);
+        tabIncome = view.findViewById(R.id.tabIncome);
+        tabBudget = view.findViewById(R.id.tabBudget);
+
         donutChart = view.findViewById(R.id.donutChart);
         layoutLegend = view.findViewById(R.id.layoutLegend);
 
         databaseHelper = new DatabaseHelper(requireContext());
         decimalFormat = new DecimalFormat("#,###");
 
+        setupTabs();
         loadStatistics();
 
         return view;
@@ -65,36 +80,92 @@ public class StatisticsFragment extends Fragment {
         loadStatistics();
     }
 
+    private void setupTabs() {
+        tabExpense.setOnClickListener(v -> {
+            selectedTab = 0;
+            loadStatistics();
+        });
+
+        tabIncome.setOnClickListener(v -> {
+            selectedTab = 1;
+            loadStatistics();
+        });
+
+        tabBudget.setOnClickListener(v -> {
+            selectedTab = 2;
+            loadStatistics();
+        });
+    }
+
     private void loadStatistics() {
         if (databaseHelper == null) {
             return;
         }
 
-        double totalExpense = databaseHelper.getTotalExpense();
+        updateTabStyle();
 
-        tvTotalExpense.setText("Tổng chi: " + decimalFormat.format(totalExpense) + "đ");
+        if (selectedTab == 0) {
+            loadExpenseStatistics();
+        } else if (selectedTab == 1) {
+            loadIncomeStatistics();
+        } else {
+            loadBudgetStatistics();
+        }
+    }
 
-        ArrayList<String> rawList = databaseHelper.getExpenseByCategory();
+    private void loadExpenseStatistics() {
+        tvStatisticsTitle.setText("Thống Kê Chi Tiêu");
+
+        double total = databaseHelper.getRealExpenseTotalForStatistics();
+        tvTotalTitle.setText("Tổng chi: " + decimalFormat.format(total) + "đ");
+
+        ArrayList<String> rawList = databaseHelper.getExpenseByCategoryForStatistics();
+
+        showChart(rawList, total, "Chi tiêu", "Chưa có dữ liệu chi tiêu");
+    }
+
+    private void loadIncomeStatistics() {
+        tvStatisticsTitle.setText("Thống Kê Thu Nhập");
+
+        double total = databaseHelper.getRealIncomeTotalForStatistics();
+        tvTotalTitle.setText("Tổng thu: " + decimalFormat.format(total) + "đ");
+
+        ArrayList<String> rawList = databaseHelper.getIncomeByCategoryForStatistics();
+
+        showChart(rawList, total, "Thu nhập", "Chưa có dữ liệu thu nhập");
+    }
+
+    private void loadBudgetStatistics() {
+        tvStatisticsTitle.setText("Thống Kê Hũ");
+
+        double total = databaseHelper.getBudgetHistoryTotalForStatistics();
+        tvTotalTitle.setText("Tổng nạp/rút hũ: " + decimalFormat.format(total) + "đ");
+
+        ArrayList<String> rawList = databaseHelper.getBudgetHistoryByActionForStatistics();
+
+        showChart(rawList, total, "Hũ", "Chưa có dữ liệu nạp/rút hũ");
+    }
+
+    private void showChart(ArrayList<String> rawList, double total, String legendType, String emptyText) {
         ArrayList<DonutChartView.ChartItem> chartItems = new ArrayList<>();
 
         layoutLegend.removeAllViews();
 
-        if (rawList == null || rawList.isEmpty() || totalExpense <= 0) {
+        if (rawList == null || rawList.isEmpty() || total <= 0) {
             donutChart.setData(chartItems);
-            addEmptyLegend();
+            addEmptyLegend(emptyText);
             return;
         }
 
         for (int i = 0; i < rawList.size(); i++) {
             String item = rawList.get(i);
-
             String[] parts = item.split("\\|");
 
             if (parts.length < 2) {
                 continue;
             }
 
-            String category = parts[0];
+            String name = parts[0];
             double amount;
 
             try {
@@ -105,26 +176,45 @@ public class StatisticsFragment extends Fragment {
 
             int color = chartColors[i % chartColors.length];
 
-            chartItems.add(new DonutChartView.ChartItem(category, amount, color));
-            addLegendItem(category, amount, totalExpense, color);
+            chartItems.add(new DonutChartView.ChartItem(name, amount, color));
+            addLegendItem(name, amount, total, color, legendType);
         }
 
         donutChart.setData(chartItems);
     }
 
-    private void addLegendItem(String category, double amount, double totalExpense, int color) {
+    private void updateTabStyle() {
+        setTabSelected(tabExpense, selectedTab == 0);
+        setTabSelected(tabIncome, selectedTab == 1);
+        setTabSelected(tabBudget, selectedTab == 2);
+    }
+
+    private void setTabSelected(TextView tab, boolean selected) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(dpToPx(14));
+
+        if (selected) {
+            bg.setColor(getColorCompat(R.color.primary));
+            tab.setTextColor(Color.WHITE);
+        } else {
+            bg.setColor(Color.TRANSPARENT);
+            tab.setTextColor(getColorCompat(R.color.text_secondary));
+        }
+
+        tab.setBackground(bg);
+    }
+
+    private void addLegendItem(String name, double amount, double total, int color, String legendType) {
         LinearLayout row = new LinearLayout(requireContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(0, 8, 0, 8);
 
         TextView colorBox = new TextView(requireContext());
-        colorBox.setWidth(dpToPx(14));
-        colorBox.setHeight(dpToPx(14));
         colorBox.setBackgroundColor(color);
 
         TextView tvName = new TextView(requireContext());
-        tvName.setText(category + "  Chi tiêu");
+        tvName.setText(name + "  " + legendType);
         tvName.setTextColor(Color.parseColor("#111827"));
         tvName.setTextSize(14);
         tvName.setPadding(dpToPx(10), 0, 0, 0);
@@ -133,19 +223,19 @@ public class StatisticsFragment extends Fragment {
         tvAmount.setText(decimalFormat.format(amount) + "đ");
         tvAmount.setTextColor(Color.parseColor("#6B7280"));
         tvAmount.setTextSize(14);
-        tvAmount.setGravity(android.view.Gravity.END);
+        tvAmount.setGravity(Gravity.END);
 
         int percent = 0;
 
-        if (totalExpense > 0) {
-            percent = (int) Math.round((amount / totalExpense) * 100);
+        if (total > 0) {
+            percent = (int) Math.round((amount / total) * 100);
         }
 
         TextView tvPercent = new TextView(requireContext());
         tvPercent.setText(percent + "%");
         tvPercent.setTextColor(Color.parseColor("#6B7280"));
         tvPercent.setTextSize(14);
-        tvPercent.setGravity(android.view.Gravity.END);
+        tvPercent.setGravity(Gravity.END);
 
         LinearLayout.LayoutParams colorParams = new LinearLayout.LayoutParams(
                 dpToPx(14),
@@ -159,7 +249,7 @@ public class StatisticsFragment extends Fragment {
         );
 
         LinearLayout.LayoutParams amountParams = new LinearLayout.LayoutParams(
-                dpToPx(92),
+                dpToPx(100),
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
 
@@ -176,15 +266,19 @@ public class StatisticsFragment extends Fragment {
         layoutLegend.addView(row);
     }
 
-    private void addEmptyLegend() {
+    private void addEmptyLegend(String text) {
         TextView empty = new TextView(requireContext());
-        empty.setText("Chưa có dữ liệu chi tiêu để thống kê");
+        empty.setText(text);
         empty.setTextColor(Color.parseColor("#6B7280"));
         empty.setTextSize(15);
-        empty.setGravity(android.view.Gravity.CENTER);
+        empty.setGravity(Gravity.CENTER);
         empty.setPadding(0, 18, 0, 18);
 
         layoutLegend.addView(empty);
+    }
+
+    private int getColorCompat(int colorRes) {
+        return requireContext().getColor(colorRes);
     }
 
     private int dpToPx(int dp) {
